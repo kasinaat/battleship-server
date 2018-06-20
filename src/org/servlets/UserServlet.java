@@ -9,6 +9,7 @@ import javax.servlet.http.*;
 import javax.servlet.annotation.*;
 
 import org.models.Game;
+import org.models.GameRoom;
 import org.models.User;
 import org.services.GameService;
 import org.services.UserService;
@@ -27,20 +28,27 @@ public class UserServlet extends HttpServlet {
                 PrintWriter pw = response.getWriter();
                 pw.write(new Gson().toJson(user));
                 pw.close();
-            }
-            else if (query.equals("history")) {
+            } else if (query.equals("history")) {
                 String username = request.getParameter("user");
                 Set<Game> games = GameService.getGameHistory(username);
                 response.setContentType("application/json");
                 PrintWriter pw = response.getWriter();
                 pw.write(new Gson().toJson(games));
                 pw.close();
+            } else if (query.equals("games")) {
+                String gameType = request.getParameter("type");
+                if (gameType.equals("new")) {
+                    Set<GameRoom> games = GameService.getNewGames();
+                    PrintWriter pw = response.getWriter();
+                    pw.write(new Gson().toJson(games));
+                    pw.close();
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException cnfe) {
             cnfe.printStackTrace();
-        } catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
