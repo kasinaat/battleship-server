@@ -11,12 +11,18 @@ import org.models.GameRoom;
 import org.util.DBUtil;
 
 public class GameService {
-    public static void startGame(String username) {
+    public static Integer startGame(String username) {
+        Integer gameId=0;
         try {
             Connection con = DBUtil.getConnection();
             PreparedStatement ps = con.prepareStatement("INSERT into game(time_played,creator) values(NOW(),?)");
             ps.setString(1, username);
             ps.execute();
+            ps = con.prepareStatement(
+                    "select auto_increment from information_schema.tables where table_schema = 'battleship' and table_name = 'game'");
+            ResultSet rs = ps.executeQuery();
+            rs.first();
+            gameId = rs.getInt(1) - 1;
             ps.close();
             con.close();
         } catch (SQLException e) {
@@ -24,6 +30,7 @@ public class GameService {
         } catch (ClassNotFoundException cnfe) {
             cnfe.printStackTrace();
         }
+        return gameId;
 
     }
 
@@ -41,7 +48,8 @@ public class GameService {
             ps.setInt(3, point);
             ps.execute();
             System.out.println("Finishing Game");
-            ps = con.prepareStatement("UPDATE game set game_status = 'COMPLETED'");
+            ps = con.prepareStatement("UPDATE game set game_status = 'COMPLETED' where game_id = ?");
+            ps.setInt(1, gameId-1);
             ps.execute();
             ps.close();
             con.close();
@@ -86,13 +94,15 @@ public class GameService {
         }
         return games;
     }
-    public static Set<GameRoom> getNewGames(){
+
+    public static Set<GameRoom> getNewGames() {
         Set<GameRoom> games = new HashSet<GameRoom>();
         try {
             Connection con = DBUtil.getConnection();
-            PreparedStatement ps = con.prepareStatement("SELECT (game_id,creator) from game where games_status = 'NEW'");
+            PreparedStatement ps = con
+                    .prepareStatement("SELECT game_id,creator from game where game_status = 'NEW'");
             ResultSet rs = ps.executeQuery();
-            while(rs.next()){
+            while (rs.next()) {
                 GameRoom gr = new GameRoom();
                 gr.setCreator(rs.getString(2));
                 gr.setGameId(rs.getInt(1));
@@ -101,7 +111,7 @@ public class GameService {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } catch(ClassNotFoundException cnfe){
+        } catch (ClassNotFoundException cnfe) {
             cnfe.printStackTrace();
         }
         return games;

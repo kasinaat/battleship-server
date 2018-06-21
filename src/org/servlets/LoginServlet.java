@@ -38,6 +38,7 @@ public class LoginServlet extends HttpServlet {
         String password = request.getParameter("password");
         try {
             String token = UserService.login(username,password);
+            System.out.println(token);
             if( token != null){
                 response.setStatus(200);
                 PrintWriter pw = response.getWriter();

@@ -10,11 +10,11 @@ import java.util.*;
 @ServerEndpoint("/websocket/{username}/{id}")
 public class Server {
     static Set<Session> users = Collections.synchronizedSet(new HashSet<Session>());
-    static HashMap<Integer,String> games = new HashMap<Integer,String>();
+    static Map<String,String> games = Collections.synchronizedMap(new HashMap<String,String>());
     
 
     @OnOpen
-    public void onOpen(Session session, @PathParam("username") String username,@PathParam("id") Integer gameId) {
+    public void onOpen(Session session, @PathParam("username") String username,@PathParam("id") String gameId) {
         session.getUserProperties().put("username", username);
         session.getUserProperties().put("gameId", gameId);
         users.add(session);
@@ -22,10 +22,9 @@ public class Server {
             if(games.containsKey(gameId)){
                 games.put(gameId, "PLAYING");
                 for (Session var : users) { 
-                    if(var.getUserProperties().get("gameId") == gameId && var.getUserProperties().get("username") != username){
+                    if(var.getUserProperties().get("gameId").equals(gameId) && !var.getUserProperties().get("username").equals(username)){
                         var.getBasicRemote().sendText("READY#"+session.getUserProperties().get("username"));
                         session.getBasicRemote().sendText("READY#"+var.getUserProperties().get("username"));
-                        GameService.startGame(username);
                         break;
                     }
                 }
@@ -43,13 +42,15 @@ public class Server {
     public String onMessage(String message, Session session) {
         try {
             // System.out.println(session.getUserProperties().get("username"));
+            System.out.println("Message from " + session.getUserProperties().get("username") + " " + message);
+
             if (message.contains("POINT")) {
                 String val[] = message.split("#");
                 String user = val[2];
                 GameService.finishGame(user, Integer.parseInt(val[1]));
-                Integer gameId = Integer.parseInt(session.getUserProperties().get("gameId").toString());
+                String gameId = session.getUserProperties().get("gameId").toString();
                 games.put(gameId, "COMPLETED");
-            } else {
+            }else {
                 String[] values = message.split("#");
                 for (Session var : users) {
                     if (var.getUserProperties().get("username").equals(values[2])){
@@ -58,10 +59,9 @@ public class Server {
                     }
                 }
             }
-            System.out.println("Message from " + session.getUserProperties().get("username") + " " + message);
-
+            
         } catch (IOException e) {
-            games.put(Integer.parseInt(session.getUserProperties().get("gameId").toString()), "COMPLETED");
+            games.put(session.getUserProperties().get("gameId").toString(), "COMPLETED");
             users.remove(session);
         }
         return null;
@@ -69,7 +69,7 @@ public class Server {
 
     @OnClose
     public void onClose(Session session) throws Exception {
-        games.put(Integer.parseInt(session.getUserProperties().get("gameId").toString()), "COMPLETED");
+        games.put(session.getUserProperties().get("gameId").toString(), "COMPLETED");
         users.remove(session);
         System.out.println("Connection Closed");
     }
@@ -77,7 +77,7 @@ public class Server {
     @OnError
     public void onError(Throwable e, Session session) {
         users.remove(session);
-        games.put(Integer.parseInt(session.getUserProperties().get("gameId").toString()), "COMPLETED");
+        games.put(session.getUserProperties().get("gameId").toString(), "COMPLETED");
         System.out.println("Inside Onerror");
         e.printStackTrace();
     }

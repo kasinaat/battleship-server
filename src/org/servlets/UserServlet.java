@@ -55,6 +55,11 @@ public class UserServlet extends HttpServlet {
     }
 
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
+        String username = request.getParameter("user");
+        Integer gameId = GameService.startGame(username);
+        String res = "{\"gameId\":"+gameId+"}";
+        PrintWriter pw = response.getWriter();
+        pw.write(res);
+        pw.close();
     }
 }
